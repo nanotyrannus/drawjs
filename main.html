@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+	<link rel="icon"
+      type="image/png"
+      href="assets/icon.png">
+	<link rel="stylesheet" type="text/css" href="styles.css"></link>
+</head>
+<body>
+    <div id="main-info">
+        <span id="room-info"></span>
+        <button id="options"></button>
+    </div>
+    <div id="notice" class="notice-inactive"></div>
+	<div id="canvas-container">
+	  <canvas id="view" height="400" width="800" style="background-color:white;"></canvas>
+    </div>
+	  <div id="tool-container">
+	  	<div id="tool-button-container">
+      	<button class="tool-button" id="pencil-button"></buton>
+        <button class="tool-button" id="brush-button"></buton>
+        <button class="tool-button" id="erase-button"></buton>
+        </div>
+      </div>
+	<div id="control">
+      <div id="info">
+      	<div id="selected-color"></div>
+      	<div id="selected-tool"></div>
+      	<div id="radius"></div>
+      </div>
+	</div>
+</body>
+<script type="text/javascript" src="js/main.js">
+</script>
+</html>

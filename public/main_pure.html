@@ -1,0 +1,120 @@
+<head>
+  <link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css"></link>
+  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"></link>
+  <link rel="stylesheet" type="text/css" href="css/styles.css"></link>
+</head>
+<body onload="startTutorial()">
+  <div id="canvas-container">
+    <canvas id="view" width=800 height=600></canvas>
+  </div>
+  <div id="menu">
+    <div id="tool-button-container">
+      <div class="pure-g">
+        <div class="pure-u-1-3">
+          <button class="tool-button pure-button" id="pencil-button" onclick="togglePencil()">
+            <i class="fa fa-pencil"></i>
+          </button>
+        </div>
+        <div class="pure-u-1-3">
+          <button class="tool-button pure-button" id="brush-button" onclick="toggleBrush()">
+            <i class="fa fa-paint-brush"></i>
+          </button>
+        </div>
+        <div class="pure-u-1-3">
+          <button class="tool-button pure-button" id="erase-button" onclick="toggleEraser()">
+            <i class="fa fa-eraser"></i>
+          </button>
+        </div>
+      </div>
+      <canvas id="color-palette" width=256 height=256></canvas>
+      <div id="selected-color"></div>
+    </div>
+
+  </div>
+  <div id="notice" class="notice-inactive"></div>
+  <div id="menu-toggle" onclick="toggleMenu()">
+    <i class="fa fa-bars"></i>
+  </div>
+  <script src="js/main.js"></script>
+  <script>
+  function startTutorial() {
+    generateNotice("Press '[' or ']' to change brush size.", 3000)
+    setTimeout(function(){generateNotice("Press 'spacebar' to open the menu.", 3000)}, 3000)
+  }
+  document.addEventListener("keyup", function (event) {
+    if (event.keyCode === 32) {
+      toggleMenu()
+    }
+  })
+  var menuToggle = $("menu-toggle")
+  var canvasContainer = $("canvas-container")
+  var menu = $("menu")
+  var toggled = false
+  function toggleMenu() {
+    if (toggled) {
+      menuToggle.innerHTML = "<i class=\"fa fa-bars\"></i>"
+      canvasContainer.style.width = "100%"
+
+      menu.style.transform = "translate(100%)"
+      toggled = false
+    } else {
+      menuToggle.innerHTML = "<i class=\"fa fa-times-circle\"></i>"
+      canvasContainer.style.width = "66%"
+
+      menu.style.transform = "translate(0%)"
+      toggled = true
+    }
+  }
+  function $(elm) {
+    return document.getElementById(elm);
+  }
+  var canvas = $("main-canvas")
+  var palette = $("color-palette")
+  var img = new Image()
+  img.src = "colors.jpg"
+  var palettePixels
+  var selectedColor = $("selected-color")
+  img.addEventListener("load", function () {
+    var paletteContext = palette.getContext("2d")
+    paletteContext.drawImage(img, 0, 0)
+    palettePixels = paletteContext.getImageData(0, 0, 256, 256).data
+  })
+  var paletteX = 0, paletteY = 0, r = 0, g = 0, b = 0, drag = false
+  function getPaletteColor(x, y) {
+    r = palettePixels[(y*256*4) + (x*4)] || 0
+    g = palettePixels[(y*256*4) + (x*4 + 1)] || 0
+    b = palettePixels[(y*256*4) + (x*4 + 2)] || 0
+    selectedColor.style.backgroundColor = "rgb(" + r + "," + g + "," + b + ")"
+    cursor.color = rgbToHex(r,g,b)
+  }
+
+  function rgbToHex(r, g, b) {
+    function componentToHex(c) {
+      var hex = c.toString(16)
+      return hex.length == 1 ? "0" + hex : hex
+    }
+    return componentToHex(r) + componentToHex(g) + componentToHex(b)
+  }
+
+  palette.addEventListener("mousedown", function (event) {
+    console.log("palette event")
+    drag = true
+    paletteX = event.pageX - (palette.offsetLeft + $("menu").offsetLeft + 1)
+    paletteY = event.pageY - palette.offsetTop
+    getPaletteColor(paletteX, paletteY)
+  })
+  palette.addEventListener("mousemove", function (event) {
+    if (drag) {
+      paletteX = event.pageX - (palette.offsetLeft + $("menu").offsetLeft + 1)
+      paletteY = event.pageY - palette.offsetTop
+      getPaletteColor(paletteX, paletteY)
+    }
+  })
+  palette.addEventListener("mouseup", function (event) {
+    drag = false
+  })
+  palette.addEventListener("mouseleave", function (event) {
+    drag = false
+  })
+  </script>
+</body>

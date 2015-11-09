@@ -1,0 +1,114 @@
+<head>
+  <link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css"></link>
+  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"></link>
+  <style>
+  #canvas-container {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    background-color: rgb(30, 141, 173);
+    -webkit-box-shadow: 4px 0px 20px -4px rgba(0,0,0,0.75);
+    -moz-box-shadow: 4px 0px 20px -4px rgba(0,0,0,0.75);
+    box-shadow: 4px 0px 20px -4px rgba(0,0,0,0.75);
+    transition: width 0.25s;
+  }
+
+  canvas {
+    display: absolute;
+    background-color: rgb(255, 255, 255);
+    -webkit-box-shadow: 4px 0px 20px -4px rgba(0,0,0,0.75);
+    -moz-box-shadow: 4px 0px 20px -4px rgba(0,0,0,0.75);
+    box-shadow: 4px 0px 20px -4px rgba(0,0,0,0.75);
+  }
+
+  #menu {
+    position: fixed;
+    top: 0px;
+    right: 0px;
+    height: 100%;
+    width: 30%;
+    border: 1px solid rgb(0, 0, 0);
+    transform: translate(100%);
+    transition: transform 0.25s;
+  }
+
+  .tool-button {
+    box-sizing: border-box;
+    width: 30%;
+    height: 5%;
+    margin: 1%;
+  }
+
+  #tool-button-container {
+
+  }
+
+  #notice {
+  	color: white;
+  	text-align: center;
+  	vertical-align: middle;
+  	line-height: 30px;
+    transition: opacity 0.2s;
+    top: 45px;
+    border-radius: 20px;
+    position: fixed;
+    width: 30%;
+    position: fixed;
+    left: 50%;
+    margin-left: -15%;
+    height: 30px;
+    background-color:black;
+  }
+
+  .notice-active {
+    opacity: 0.7;
+  }
+
+  .notice-inactive {
+  	opacity: 0.0;
+  }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="view" width=800 height=600></canvas>
+  </div>
+  <div id="menu">
+    <div id="tool-button-container">
+      <button class="tool-button pure-button" id="pencil-button"></button>
+      <button class="tool-button pure-button" id="brush-button"></button>
+      <button class="tool-button pure-button" id="erase-button"></button>
+    </div>
+  </div>
+  <div id="notice" class="notice-inactive"></div>
+  <script src="js/main.js"></script>
+  <script>
+  document.addEventListener("keyup", function (event) {
+    if (event.keyCode === 32) {
+      toggleMenu()
+    }
+  })
+  var canvasContainer = $("canvas-container")
+  var menu = $("menu")
+  var toggled = true
+  function toggleMenu() {
+    if (toggled) {
+      canvasContainer.style.width = "66%"
+      menu.style.transform = "translate(0%)"
+      toggled = false
+    } else {
+      canvasContainer.style.width = "100%"
+      menu.style.transform = "translate(100%)"
+      toggled = true
+    }
+  }
+  function $(elm) {
+    return document.getElementById(elm);
+  }
+
+  var canvas = $("main-canvas")
+  </script>
+</body>
