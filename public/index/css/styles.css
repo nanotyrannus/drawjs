@@ -1,0 +1,18 @@
+#google-oauth {
+  background-color: rgb(236, 71, 0);
+  color: rgb(255, 255, 255);
+}
+div {
+  transition: all 0.4s;
+}
+#middle {
+  -webkit-box-shadow: 3px 4px 16px 0px rgba(0,0,0,0.26);
+  -moz-box-shadow: 3px 4px 16px 0px rgba(0,0,0,0.26);
+  box-shadow: 3px 4px 16px 0px rgba(0,0,0,0.26);
+  height: 90%;
+  margin: 2.5% 0;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+body {
+  background-image: url('https://c2.staticflickr.com/4/3742/13799251124_a7356ce3d8_k.jpg');
+}

@@ -1,0 +1,54 @@
+<html>
+<head>
+  <link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.6/material.indigo-pink.min.css">
+  <script src="https://storage.googleapis.com/code.getmdl.io/1.0.6/material.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <style>
+  .centered-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+  }
+  #profile-card {
+    display: block;
+  }
+  #progress-bar {
+    display: block;
+  }
+  </style>
+</head>
+<body>
+  <div class="centered-container">
+    <div id="progress-bar" id="p2" class="mdl-progress mdl-js-progress mdl-progress__indeterminate"></div>
+  </div>
+</body>
+<script>
+var fetch = new XMLHttpRequest()
+var hash = window.location.hash.substring(1), rawHashValues = hash.split("&"), hashParameters = {}
+rawHashValues.forEach(function (str) {
+  str = str.split("=")
+  hashParameters[str[0]] = str[1]
+})
+fetch.open("GET", "https://www.googleapis.com/plus/v1/people/me?" + "access_token=" + hashParameters["access_token"])
+fetch.addEventListener("load", function () {
+  var parsedResponse = JSON.parse(this.responseText)
+  console.log(parsedResponse.displayName)
+  console.log(parsedResponse.image.url.match(/http.*\.jpg/)[0])
+
+  var startSession = new XMLHttpRequest()
+  startSession.open("GET", "/login?" + hash)
+  //post.setRequestHeader("Content-Type", "application/json")
+  startSession.addEventListener("load", function () {
+    if (this.responseText === "success") {
+      window.location.href = "/home"
+    } else {
+      console.error("LOGIN UNSUCCESSFUL")
+    }
+  })
+  startSession.send()
+})
+fetch.send()
+</script>
+</html>

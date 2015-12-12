@@ -4,20 +4,59 @@
 
 var $ = document;
 
-$.getElementById("pencil-button").addEventListener("click", function () {cursor.mode = Mode.PENCIL})
-$.getElementById("brush-button").addEventListener("click", function () {cursor.mode = Mode.BRUSH})
-$.getElementById("erase-button").addEventListener("click", function () {cursor.mode = Mode.ERASE})
+$.getElementById("pencil-button").addEventListener("click", function(){cursor.mode = Mode.PENCIL})
+$.getElementById("brush-button").addEventListener("click", function(){cursor.mode = Mode.BRUSH})
+$.getElementById("erase-button").addEventListener("click", function(){cursor.mode = Mode.ERASE})
 
+var roomInfo = $.getElementById("room-info")
 var canvasElm = $.getElementById("view")
 var context = canvasElm.getContext("2d")
-context.lineJoin = "round"
+context.lineJoin = "round";
 
-var serverUrl = "ws://52.8.54.187:8080"
-var ws = new WebSocket(serverUrl)
+var ws = new WebSocket("ws://52.8.54.187:8080");
 //var ws = new WebSocket("ws://localhost:8080")
-var sessionID = null
-var roomID = location.href.split("/instance/")[1]
-var incomingStrokes = new Map()
+var sessionID = "";
+ws.addEventListener("message", function(message){
+  var chunk = JSON.parse(message.data);
+  console.log(chunk.body)
+  if (chunk.type === Type.STROKE) {
+    if (!cursor.isActive) {
+      strokes.insert(new Stroke(chunk.body))
+      redraw();
+    } else {
+      strokeQueue.push(chunk.body);
+    }
+  } else if (chunk.type === Type.ASSIGNMENT){
+    sessionID = chunk.body;
+  } else if (chunk.type === Type.UNDO) {
+    console.log("undo received!")
+    strokes.getStrokeByTimestamp(chunk.body).visible = false
+    redraw()
+  } else if (chunk.type === Type.REDO) {
+    console.log("redo received!")
+    strokes.getStrokeByTimestamp(chunk.body).visible = true
+    redraw()
+  }
+});
+
+roomID = location.href.split("/instance/")[1]
+
+ws.addEventListener("open", function() {
+  if(roomID) {
+    send(Type.JOIN, roomID)
+  }
+})
+
+
+var send = function(type, body){
+  var message = {
+    "user" : sessionID,
+    "type" : type,
+    "body" : body
+  };
+  ws.send(JSON.stringify(message));
+  console.log("sent ", message)
+};
 
 
 var Mode = {
@@ -28,7 +67,7 @@ var Mode = {
   "SELECT" : 4,
   "STAMP" : 5,
   "ERASE" : 6
-}
+};
 
 var Type = {
   "STROKE" : 0,
@@ -38,8 +77,9 @@ var Type = {
   "CLEAR" : 4,
   "JOIN" : 5,
   "ASSIGNMENT" : 6,
-  "SUBSTROKE" : 7,
-  "DATA" : 8
+"SUBSTROKE_START" : 7,
+"SUBSTROKE_CONT" : 8,
+"SUBSTROKE_END" : 9
 }
 
 var cursor = {
@@ -48,100 +88,30 @@ var cursor = {
   "color" : "000000",
   "radius" : 1,
   "brushIndex" : 0
-}
-
-var messageCallback = function (message) {
-  var chunk = JSON.parse(message.data)
-  console.log(chunk)
-  if (chunk.type === Type.SUBSTROKE) {
-    console.log("substroke: " + JSON.stringify(chunk.body) + " from: " + chunk.user)
-    if (chunk.body.n === 1) {
-      var stroke = incomingStrokes.get(chunk.user)
-      stroke.update(chunk.body.x, chunk.body.y)
-      render(stroke)
-    } else if (chunk.body.n === 0) {
-      if (!incomingStrokes.has(chunk.user)) {
-        incomingStrokes.set(chunk.user, new Stroke())
-      }
-    } else if (chunk.body.n === 2) {
-      incomingStrokes.delete(chunk.user)
-    }
-  } else if (chunk.type === Type.STROKE) {
-    if (!cursor.isActive) {
-      strokes.insert(new Stroke(chunk.body))
-      redraw();
-    } else {
-      strokeQueue.push(chunk.body);
-    }
-  } else if (chunk.type === Type.ASSIGNMENT) {
-    sessionID = chunk.body;
-    //post instance user and room ID to server...
-    //need to find a way to do this that can't be easily changed by client
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/")
-    xhr.setRequestHeader("Content-Type", "application/json")
-    var room = window.location.href.split("/"), room = room[room.length-1]
-    xhr.send(JSON.stringify({
-      "id" : sessionID,
-      "room" : room
-    }))
-  } else if (chunk.type === Type.UNDO) {
-    console.log("undo received!")
-    strokes.getStrokeByTimestamp(chunk.body).visible = false
-    redraw()
-  } else if (chunk.type === Type.REDO) {
-    console.log("redo received!")
-    strokes.getStrokeByTimestamp(chunk.body).visible = true
-    redraw()
-  }
-}
-
-var openCallback = function () {
-  if(roomID) {
-    send(Type.JOIN, roomID)
-  }
-}
-
-var closeCallback = function () {
-  setTimeout(function () {
-    console.log((new Date()).toString() + " attempting to reconnect")
-    ws = new WebSocket(serverUrl)
-    ws.addEventListener("message", messageCallback)
-    ws.addEventListener("open", openCallback)
-    ws.addEventListener("close", closeCallback)
-  }, 5000)
-}
-
-ws.addEventListener("message", messageCallback)
-ws.addEventListener("open", openCallback)
-ws.addEventListener("close", closeCallback)
-
-var send = function (type, body) {
-
-  var message = {
-    "user" : sessionID,
-    "type" : type,
-    "body" : body
-  };
-  ws.send(JSON.stringify(message));
-  //console.log("sent ", message)
 };
 
-var reorder = function () {
-  strokes.sort(function (a, b) {
-    return a.timestamp - b.timestamp
-  })
-}
 
-var brushes = new Array()
-brushes.addBrush = function (name, url) {
-  var img = new Image()
-  img.src = url
-  brushes.push(img)
-  img.addEventListener("load", function () {
-    img.halfWidth = Math.floor(img.naturalWidth / 2)
-    img.halfHeight = Math.floor(img.naturalHeight / 2)
-  })
+var invertColor = function(color){
+  //TODO
+  return null;
+};
+
+var reorder = function(){
+  strokes.sort(function(a,b){
+    return a.timestamp - b.timestamp;
+  });
+};
+
+var brushes = new Array();
+brushes.addBrush = function(name, url){
+  var img = new Image();
+  img.src = url;
+  brushes.push(img);
+  img.addEventListener("load",
+  function(){
+    img.halfWidth = Math.floor(img.naturalWidth / 2);
+    img.halfHeight = Math.floor(img.naturalHeight / 2);
+  });
 }
 
 brushes.addBrush("basic", "assets/brush.png");
@@ -150,7 +120,7 @@ brushes.addBrush("kappa", "assets/kappa.png");
 //One stroke represents a single undo-able move
 var strokes = new Array();
 
-strokes.insert = function (stroke) {
+strokes.insert = function(stroke) {
   if(!strokes[0]) {
     strokes[0] = stroke
   } else {
@@ -159,11 +129,11 @@ strokes.insert = function (stroke) {
       if (s.timestamp < stroke.timestamp) {
         strokes.splice(i + 1, 0, stroke)
         console.log("inserted at index ", " ", i)
-        return
+        return;
       }
     }
   }
-}
+};
 
 strokes.assert = function(){
   for (var i = 1; i < strokes.length; ++i) {
@@ -188,7 +158,7 @@ var cache = new Array();
 var cacheIndices = new Array();
 
 var Stroke = function(stroke) {
-  if (!stroke) {
+  if(!stroke) {
     stroke = 0;
   } else {
     console.log("copying stroke from " + stroke.owner)
@@ -207,21 +177,21 @@ var Stroke = function(stroke) {
 }
 
 Stroke.prototype = {
-  "update" : function (nextX, nextY) {
-    this.x.push(nextX)
-    this.y.push(nextY)
-    this.radius.push((cursor.mode === Mode.PENCIL) ? 1 : getRadius())
-    this.color.push((cursor.mode === Mode.ERASE) ? "FFFFFF" : getColor())
+  "update" : function(nextX, nextY){
+    this.x.push(nextX);
+    this.y.push(nextY);
+    this.radius.push((cursor.mode === Mode.PENCIL) ? 1 : getRadius());
+    this.color.push((cursor.mode === Mode.ERASE) ? "FFFFFF" : getColor());
   }
-}
+};
 
 var getBrushIndex = function(i){
-  return cursor.brushIndex
-}
+  return cursor.brushIndex;
+};
 
 var getRadius = function(){
-  return cursor.radius
-}
+  return cursor.radius;
+};
 
 var getColor = function(){
   return cursor.color;
@@ -249,7 +219,7 @@ var render = function(stroke) {
     var halfWidth = Math.floor(width/2);
     var halfHeight = Math.floor(height/ 2);
     context.drawImage(brushes[stroke.brushIndex], x[x.length - 1] - halfWidth, y[x.length - 1] - halfHeight, width, height);
-  } else if (stroke.mode === Mode.PENCIL || stroke.mode === Mode.BRUSH || stroke.mode === Mode.ERASE) {
+  } else if (stroke.mode === Mode.PENCIL || stroke.mode === Mode.BRUSH) {
     x.forEach(function (elm, i) {
       context.beginPath();
       context.strokeStyle = "#" + color[i];
@@ -269,9 +239,9 @@ var render = function(stroke) {
 var randomColor = function(){
   var num = Math.floor(Math.random()*0xFFFFFF).toString(16);
   while (num.length < 6) {
-    num = "0" + num
+    num = "0" + num;
   }
-  return num
+  return num;
 }
 
 var undo = function(){
@@ -295,17 +265,17 @@ var undo = function(){
   }
 }
 
-var redo = function () {
-  if (unstrokes.length > 0) {
+var redo = function(){
+  if(unstrokes.length > 0) {
     var stroke = unstrokes.pop()
-    strokes.push(stroke)
-    send(Type.REDO, stroke.timestamp)
-    redraw()
+    strokes.push(stroke);
+    send(Type.REDO, stroke.timestamp);
+    redraw();
     return true
   } else {
     return false
   }
-}
+};
 
 //need to optimize with cache of canvas states
 function redraw() {
@@ -326,18 +296,14 @@ var clear = function(){
     }
   }
   redraw()
-}
-
-function renderText(x, y, s) {
-  context.font = "48px serif"
-  context.fillText(s, x, y)
-}
+};
 
 ////////////////
 //Input events//
 ////////////////
 
-function handleStart(e) {
+canvasElm.addEventListener("mousedown",
+function(e){
   if (e.which !== 1) return; //filter out right-clicks
   if (unstrokes[0]) {
     unstrokes = new Array();
@@ -346,35 +312,34 @@ function handleStart(e) {
   var y = e.pageY - canvasElm.offsetTop;
   cursor.isActive = true;
   strokes.push(new Stroke());
-  strokes[strokes.length - 1].update(x, y);
-  send(Type.SUBSTROKE, {"x": x, "y": y, "n" : 0})
+  strokes[strokes.length - 1].update(x, y); //add substroke message
   if (cursor.mode === Mode.STAMP) {
     strokes[strokes.length - 1].brushIndex = getBrushIndex();
     strokes[strokes.length - 1].brush = true;
   }
   render(strokes[strokes.length - 1]);
-}
-function handleMove(e) {
+});
+
+canvasElm.addEventListener("mousemove",
+function(e){
   if (cursor.isActive) {
     var x = e.pageX - canvasElm.offsetLeft;
     var y = e.pageY - canvasElm.offsetTop;
     strokes[strokes.length - 1].update(x, y);
-    send(Type.SUBSTROKE, {"x":x, "y":y, "n" : 1})
     if (cursor.mode === Mode.STAMP) {
       strokes[strokes.length - 1].brushIndex = getBrushIndex();
     }
     render(strokes[strokes.length - 1]);
   }
-}
-function handleEnd(e) {
+});
+
+$.addEventListener("mouseup", function(e){
   if(cursor.isActive) {
     send(Type.STROKE, strokes[strokes.length - 1])
-    send(Type.SUBSTROKE, {"n":2})
     cursor.isActive = false;
   }
-
   if (strokeQueue[0]) {
-    strokeQueue.forEach(function (stroke) {
+    strokeQueue.forEach(function(stroke){
       //strokes.push(stroke);
       strokes.insert(stroke)
     });
@@ -382,18 +347,10 @@ function handleEnd(e) {
     //reorder(); //bad
     redraw();
   }
-}
+});
 
-canvasElm.addEventListener("mousedown", handleStart)
-canvasElm.addEventListener("mousemove", handleMove)
-$.addEventListener("mouseup", handleEnd)
-
-canvasElm.addEventListener("touchstart", handleStart)
-canvasElm.addEventListener("touchmove", handleMove)
-$.addEventListener("touchend", handleEnd)
-$.addEventListener("touchcancel", handleEnd)
-
-$.addEventListener("keydown", function (e) {
+$.addEventListener("keydown",
+function(e){
   var event = window.event ? window.event : e;
   if (event.keyCode == 90 && event.ctrlKey) {
     if (undo()) {
@@ -431,7 +388,7 @@ $.addEventListener("keydown", function (e) {
   } else if (event.which > 48 && event.which < 58) { //1-9
     cursor.brushIndex = event.which - 49;
   }
-})
+});
 
 var incrementRadius = function(amt){
   if (cursor.radius + amt > 100) {
@@ -451,25 +408,9 @@ var decrementRadius = function(amt){
   generateNotice("brush size: " + cursor.radius)
 }
 
-var togglePencil = function () {
-  cursor.mode = Mode.PENCIL
-  generateNotice("pencil selected", 1000)
-}
-
-var toggleBrush = function () {
-  cursor.mode = Mode.BRUSH
-  generateNotice("brush selected", 1000)
-}
-
-var toggleEraser = function () {
-  cursor.mode = Mode.ERASE
-  generateNotice("eraser selected", 1000)
-}
-
 var notice = $.getElementById("notice")
 
-var generateNotice = function(message, duration) {
-  var d = duration || 1000
+var generateNotice = function(message) {
   notice.textContent = message
   notice.className = "notice-active"
   if (generateNotice.PID) {
@@ -478,5 +419,5 @@ var generateNotice = function(message, duration) {
   }
   generateNotice.PID = setTimeout(function(){
     notice.className = "notice-inactive"
-  }, d)
+  }, 1000)
 }

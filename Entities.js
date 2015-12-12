@@ -34,3 +34,11 @@ exports.User = class User {
     this.ws.send(msg)
   }
 }
+
+exports.Account = class Account {
+  constructor(displayName, sid) {
+    this.displayName = displayName
+    this.sessionID = sid
+
+  }
+}
